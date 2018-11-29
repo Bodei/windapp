@@ -2,6 +2,7 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_table as dt
+from dash.dependencies import Input, Output
 import plotly
 import plotly.graph_objs as go
 import numpy as np
@@ -13,6 +14,9 @@ from scipy import stats
 from scipy.stats import genextreme
 import math as m
 
+## Load CSV data
+
+
 app = dash.Dash()
 
 turbine_locations = pd.read_csv('turbine_locations.csv')
@@ -22,6 +26,13 @@ output = 'json'                            # Output format
 
 app.layout = html.Div([
     html.H1('New York Wind Turbine Monitor'),
+    dcc.Dropdown(
+        id = 'dropdown',
+        options = [
+            {'label': i, 'value': i} for i in turbine_locations.turbine_id
+        ]
+    ),
+    html.Div(),
     dcc.Graph(id='map', figure={
         'data': [{
             'lat': turbine_locations.latitude,
@@ -39,7 +50,7 @@ app.layout = html.Div([
         }],
         'layout': {
             'autosize': True,
-            'clickmode': 'select',
+            'clickmode': 'event',
             'hovermode': 'closest',
             'dragmode': 'select',
             'mapbox': {
@@ -57,14 +68,19 @@ app.layout = html.Div([
     #html.Div(id='station-text'),
     dcc.Graph(id='histogram'),
 ])
-
 @app.callback(
-    dash.dependencies.Output('histogram', 'figure'),
-    [dash.dependencies.Input('map', 'clickData')])
+    Output('histogram', 'figure'),
+    [Input('dropdown', 'value'),
+    Input('map', 'clickData')]
+)
 
-
-def closest_station(clickData):
-    s = turbine_locations[turbine_locations['turbine_id'] == clickData['points'][0]['text']]
+def closest_station(clickData='', value=''):
+    if clickData is '':
+        s = turbine_locations[turbine_locations['turbine_id'] == value]
+    elif value is '':
+        s = turbine_locations[turbine_locations['turbine_id'] == clickData['points'][0]['text']]
+    else:
+        return
     latitude = str(s.iloc[0]['latitude'])
     longitude = str(s.iloc[0]['longitude'])
 
@@ -135,12 +151,6 @@ def closest_station(clickData):
     print()
 
     df = pd.read_csv(closest_station+'.csv')
-
-    shape, loc, scale  = genextreme.fit(df.wind_speed)
-    print(shape)
-    print(loc)
-    print(scale)
-    shape = float(shape)
 
     trace0 = go.Histogram(
         x=df.wind_speed,
