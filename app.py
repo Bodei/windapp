@@ -91,33 +91,42 @@ app.layout = html.Div([
                 html.H3('WIND SPEED HISTOGRAM')
             ], className='Title'),
             dcc.Graph(id='histogram'),
-        ], className='seven columns wind-histogram')
+        ], className='seven columns wind-histogram'),
+        html.Div([
+            html.Div([
+                html.H3('Turbine Status')
+            ], className='Title'),
+            dt.DataTable(
+                id ='table',
+                columns=[
+                    {'name': 'Status', 'id': 'Status'},
+                    {'name': 'Power (watts)', 'id': 'Power (watts)'},
+                    {'name': 'Energy Today (kWh)', 'id': 'Energy Today (kWh)'},
+                    {'name': 'Energy 7 days (kWh)', 'id': 'Energy 7 days (kWh)'},
+                    {'name': 'Energy 30 days (kWh)', 'id': 'Energy 30 days (kWh)'},
+                    {'name': 'AC Voltage (VAC)', 'id': 'AC Voltage (VAC)'},
+                    {'name': 'DC Voltage (VDC)', 'id': 'DC Voltage (VDC)'},
+                    {'name': 'DC Current (amps)', 'id': 'DC Current (amps)'}
+                ],
+                style_cell_conditional=[
+                    {'if': {'column_id': 'Status'},
+                     'width': '130px'},
+                ],
+                data = [],
+                editable=True
+            )
+        ], className='wind-polar ')
     ], className='row wind-histo-polar'),
-    dt.DataTable(
-        id ='table',
-        #style_data={'whiteSpace': 'normal'},
-        #css=[{
-        #'selector': '.dash-cell div.dash-cell-value',
-        #'rule': 'display: inline; white-space: inherit; overflow: inherit; text-overflow: inherit;'
-        #}],
-        columns=[
-            {'name': 'Status', 'id': 'Status'},
-            {'name': 'Power (watts)', 'id': 'Power (watts)'},
-            {'name': 'Energy Today (kWh)', 'id': 'Energy Today (kWh)'},
-            {'name': 'Energy 7 days (kWh)', 'id': 'Energy 7 days (kWh)'},
-            {'name': 'Energy 30 days (kWh)', 'id': 'Energy 30 days (kWh)'},
-            {'name': 'AC Voltage (VAC)', 'id': 'AC Voltage (VAC)'},
-            {'name': 'DC Voltage (VDC)', 'id': 'DC Voltage (VDC)'},
-            {'name': 'DC Current (amps)', 'id': 'DC Current (amps)'}
-        ],
-        #style_cell={'textAlign': 'center'},
-        style_cell_conditional=[
-            {'if': {'column_id': 'Status'},
-             'width': '130px'},
-        ],
-        data = [],
-        editable=True
-    )
+    html.Div([
+        html.P('\
+            Status  .fm;km;ekfmk em;fm;e mfl;melmfmen ngnknkrngkr nkgnke;ms\
+            testfmkfkejfkjkefkekfkekfefjeieoifjiejfoiejfijefjo\
+            yaykfekfmkengnlrjkjgkrj jkjgkjrkgj; rjjkgjr kj;grk kjg\
+            yepsss lkgrkljgl kjgk jlkrjsjgk jkjgkjr jgkrslgjj jg', 
+            id='turbine-status'
+        ),
+    ], className='seven columns wind-histogram')
+
 ], style={'padding': '0px 10px 15px 10px',
           'marginLeft': 'auto', 'marginRight': 'auto', "width": "900",
           'boxShadow': '0px 0px 5px 5px rgba(204,204,204,0.4)'})
@@ -127,7 +136,6 @@ app.layout = html.Div([
     [Input('map', 'clickData'),
     Input('dropdown','value')]
 )
-
 def closest_station(value1,value2):
     if value1 != value2:
         s = turbine_locations[turbine_locations['turbine_id'] == value2]
