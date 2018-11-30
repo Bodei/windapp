@@ -1,34 +1,162 @@
+import dash
+import dash_core_components as dcc
+import dash_html_components as html
+import dash_table as dt
+from dash.dependencies import Input, Output
+import plotly
+import plotly.graph_objs as go
+import numpy as np
 import urllib.parse
 import requests
-import folium
-import json
 import pandas as pd
-import os
-import altair as alt
-from vega_datasets import data
-import numpy as np
+import plotly.figure_factory as ff
+from scipy import stats
+from scipy.stats import genextreme
+import math as m
 
+## Load CSV data
+
+external_css = ["https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css",
+                "https://fonts.googleapis.com/css?family=Raleway:400,400i,700,700i",
+                "https://fonts.googleapis.com/css?family=Product+Sans:400,400i,700,700i"]
+
+custom_map_style = "mapbox://styles/mapbox/light-v9"
+
+app = dash.Dash(__name__,
+    external_stylesheets=external_css
+)
+
+turbine_locations = pd.read_csv('data/turbine_locations.csv')
+mapbox_access_token = 'pk.eyJ1IjoiY2JvZGVpIiwiYSI6ImNqbzY3eG4wejBlN3UzcXBiNTk1a3N4NWsifQ.rAUKKJtNfW5Mw2GX8Tdoag'
 token = '0939c8c78a5a460e8685922d985d500f' # API token
 output = 'json'                            # Output format
 
-def closest_station(latitude, longitude):
+app.layout = html.Div([
+    html.Div([
+        html.H2('Wind Turbine Dash'),
+    ], className='banner'),
+    dcc.Dropdown(
+        id = 'dropdown',
+        options = [
+            {'label': i, 'value': i} for i in turbine_locations.turbine_id
+        ]
+    ),
+    html.Div([
+        html.Div([
+            html.H3('Turbine Locations')
+        ], className='Title'),
+        html.Div([
+            dcc.Graph(id='map', figure={
+                'data': [{
+                    'lat': turbine_locations.latitude,
+                    'lon': turbine_locations.longitude,
+                    'mode': 'markers+text',
+                    'marker': {
+                        'size': 15,
+                        'symbol': 'circle',
+                        'color': '#42c4f7',
+                    },
+                    'text': turbine_locations.turbine_id,
+                    #'textposition': 'top center',
+                    'hoverinfo': 'text',
+                    'textfont': {
+                        'size': 1,
+                        'color': '#42c4f7',
+                    },
+                    'type': 'scattermapbox',
+                }],
+                'layout': {
+                    'autosize': True,
+                    'clickmode': 'event',
+                    'hovermode': 'closest',
+                    #'dragmode': 'select',
+                    'mapbox': {
+                        'accesstoken': mapbox_access_token,
+                        'center': {
+                            'lat': 42.66,
+                            'lon': -76.61,
+                        },
+                        'style': custom_map_style,
+                        'pitch': 0,
+                        'zoom': 7,
+                    },
+                    'margin': {'l': 50, 'r': 50, 'b': 0, 't': 0}
+                }
+            }),
+        ]),
+    ], className='row wind-speed-row'),
+    html.Div([
+        html.Div([
+            html.Div([
+                html.H3('WIND SPEED HISTOGRAM')
+            ], className='Title'),
+            dcc.Graph(id='histogram'),
+        ], className='seven columns wind-histogram')
+    ], className='row wind-histo-polar'),
+    dt.DataTable(
+        id ='table',
+        #style_data={'whiteSpace': 'normal'},
+        #css=[{
+        #'selector': '.dash-cell div.dash-cell-value',
+        #'rule': 'display: inline; white-space: inherit; overflow: inherit; text-overflow: inherit;'
+        #}],
+        columns=[
+            {'name': 'Status', 'id': 'Status'},
+            {'name': 'Power (watts)', 'id': 'Power (watts)'},
+            {'name': 'Energy Today (kWh)', 'id': 'Energy Today (kWh)'},
+            {'name': 'Energy 7 days (kWh)', 'id': 'Energy 7 days (kWh)'},
+            {'name': 'Energy 30 days (kWh)', 'id': 'Energy 30 days (kWh)'},
+            {'name': 'AC Voltage (VAC)', 'id': 'AC Voltage (VAC)'},
+            {'name': 'DC Voltage (VDC)', 'id': 'DC Voltage (VDC)'},
+            {'name': 'DC Current (amps)', 'id': 'DC Current (amps)'}
+        ],
+        #style_cell={'textAlign': 'center'},
+        style_cell_conditional=[
+            {'if': {'column_id': 'Status'},
+             'width': '130px'},
+        ],
+        data = [],
+        editable=True
+    )
+], style={'padding': '0px 10px 15px 10px',
+          'marginLeft': 'auto', 'marginRight': 'auto', "width": "900",
+          'boxShadow': '0px 0px 5px 5px rgba(204,204,204,0.4)'})
+
+@app.callback(
+    Output('histogram', 'figure'),
+    [Input('map', 'clickData'),
+    Input('dropdown','value')]
+)
+
+def closest_station(value1,value2):
+    if value1 != value2:
+        s = turbine_locations[turbine_locations['turbine_id'] == value2]
+    else:
+        s = turbine_locations[turbine_locations['turbine_id'] == value1['points'][0]['text']]
+
+    latitude = str(s.iloc[0]['latitude'])
+    longitude = str(s.iloc[0]['longitude'])
 
     #########################################################
     ## Find closest weather station to turbine coordinates ##
     #########################################################
     radius = '20'
-    print(latitude)
-    print(longitude)
+
     # Station metadata API URL
     metadata_api = 'https://api.synopticlabs.org/v2/stations/metadata?&'
 
     # URL to be sent to API
-    url = metadata_api + urllib.parse.urlencode({'token': token,'output': output, 'radius': str(latitude)+','+str(longitude)+','+radius, 'limit': '10', 'vars': 'wind_speed,wind_direction'})
+    url = metadata_api + urllib.parse.urlencode({'token': token,
+                                                 'output': output,
+                                                 'radius': latitude+','+longitude+','+radius,
+                                                 'limit': '10',
+                                                 'vars': 'wind_speed,wind_direction'
+                                                 })
 
     # API GET request
     json_data = requests.get(url).json()
     json_number_of_stations = json_data['SUMMARY']['NUMBER_OF_OBJECTS']
-    # print(json_data)
+
     # Intialize lists
     station_id = []
     station_distance = []
@@ -49,51 +177,69 @@ def closest_station(latitude, longitude):
 
     min_station_distance = min(station_distance)
     min_station_distance_idx = station_distance.index(min_station_distance)
-    min_station_distance_index = station_index[min_station_distance_idx]
     closest_station = station_id[min_station_distance_idx]
- 
-    period_start = json_data['STATION'][min_station_distance_index]['PERIOD_OF_RECORD']['start']
-    period_end = json_data['STATION'][min_station_distance_index]['PERIOD_OF_RECORD']['end']
-    latitude_station = json_data['STATION'][min_station_distance_index]['LATITUDE']
-    longitude_station = json_data['STATION'][min_station_distance_index]['LONGITUDE']
+    df = pd.read_csv('data/'+closest_station+'.csv')
 
-    # Convert time period to usable format
-    year_start = period_start[:4]
-    month_start = period_start[5:7]
-    day_start = period_start[8:10]
-    hour_start = period_start[11:13]
-    minute_start = period_start[14:16]
+    trace0 = go.Histogram(
+        x=df.wind_speed,
+        histnorm='probability',
+        nbinsx = 50,
+        marker=dict(
+            color='#42c4f7'
+        ),
+    ),
+    layout = go.Layout(
+        title='Wind Speed Frequency',
+        xaxis=dict(
+            title='Wind Speed'
+        ),
+        yaxis=dict(
+            title='Frequency'
+        ),
+    )
+    figure = go.Figure(trace0,layout)
+    return figure
 
-    year_end = period_end[:4]
-    month_end = period_end[5:7]
-    day_end = period_end[8:10]
-    hour_end = period_end[11:13]
-    minute_end = period_end[14:16]
+@app.callback(
+    Output('dropdown', 'value'),
+    [Input('map','clickData')]
+)
+def update_dropdown(clickData):
+    value = clickData['points'][0]['text']
+    return value
 
-    start = year_start+month_start+day_start+hour_start+minute_start
-    end = year_end+month_end+day_end+hour_end+minute_end
+@app.callback(
+    Output('table', 'data'),
+    [Input('map','clickData'),
+    Input('dropdown', 'value')]
+)
+def turbine_status(clickData, value):
 
-    #print('Closest weather station with 10 years of wind speed data: ' + closest_station)
-    #print('Lat: ' + latitude_station + ' Long: ' + longitude_station)
-    #print('Distance from wind turbine: ' + str(min_station_distance) + ' miles')
-    #print('Avaiable time period: ' + period_start + ' to ' + period_end)
-    #rint()
+    if clickData != value:
+        turbine_id = value
+    else:
+        turbine_id = clickData['points'][0]['text']
 
-    # Create dictionary of data #
-    data = dict()
-    data['turbine_latitude'] = latitude
-    data['turbine_longitude'] = longitude
-    data['station_latitude'] = latitude_station
-    data['station_longitude'] = longitude_station
-    data['closest_station'] = closest_station
-    data['min_station_distance'] = min_station_distance
-    data['start'] = start
-    data['end'] = end
+    turbine_api_status = 'http://mybergey.aprsworld.com/data/jsonMyBergey.php?'
+    url= turbine_api_status + urllib.parse.urlencode({
+        'station_id': turbine_id,
+        'statsHours': '24',
+    })+'&_=1543523946153'
 
-    return data
+    json_data = requests.get(url).json()
 
-location_data = pd.read_csv('turbine_locations.csv')
-print(location_data)
-print(location_data[1,1])
-    #print(location_data.loc[i,'latitude'])
-    #print(location_data.loc[i,'longitude'])
+    d = {'Status': json_data['inverter_systemStateText'],
+        'Power (watts)': [json_data['inverter_output_power']],
+        'Energy Today (kWh)': [json_data['inverter_energy_produced_today']],
+        'Energy 7 days (kWh)': [json_data['inverter_energy_produced_last_7_days']],
+        'Energy 30 days (kWh)': [json_data['inverter_energy_produced_last_30_days']],
+        'AC Voltage (VAC)': [json_data['inverter_ac_voltage']],
+        'DC Voltage (VDC)': [json_data['inverter_dc_voltage']],
+        'DC Current (amps)': [json_data['inverter_dc_current']],
+    }
+    df = pd.DataFrame(data=d)
+
+    return df.to_dict('rows')
+
+if __name__ == '__main__':
+    app.run_server(debug=True)
