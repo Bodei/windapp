@@ -10,10 +10,8 @@ import urllib.parse
 import requests
 import pandas as pd
 import plotly.figure_factory as ff
-from scipy import stats
-from scipy.stats import genextreme
-import math as m
-
+import time
+from datetime import datetime
 ## Load CSV data
 
 external_css = ["https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css",
@@ -22,25 +20,32 @@ external_css = ["https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.
 
 custom_map_style = "mapbox://styles/mapbox/light-v9"
 
-app = dash.Dash(__name__,
-    external_stylesheets=external_css
-)
-
 turbine_locations = pd.read_csv('data/turbine_locations.csv')
 mapbox_access_token = 'pk.eyJ1IjoiY2JvZGVpIiwiYSI6ImNqbzY3eG4wejBlN3UzcXBiNTk1a3N4NWsifQ.rAUKKJtNfW5Mw2GX8Tdoag'
 token = '0939c8c78a5a460e8685922d985d500f' # API token
-output = 'json'                            # Output format
+output = 'json'    
+
+app = dash.Dash(__name__,
+    external_stylesheets=external_css
+)
 
 app.layout = html.Div([
     html.Div([
         html.H2('Wind Turbine Dash'),
     ], className='banner'),
-    dcc.Dropdown(
-        id = 'dropdown',
-        options = [
-            {'label': i, 'value': i} for i in turbine_locations.turbine_id
-        ]
-    ),
+    html.Div([
+        html.Div([
+            html.H3('Select Turbine')           
+        ], className='Title'),
+        html.Div([
+            dcc.Dropdown(
+                id = 'dropdown',
+                options = [
+                    {'label': i, 'value': i} for i in turbine_locations.turbine_id
+                ]
+            ),
+        ])
+    ], className='row wind-speed-row'),
     html.Div([
         html.Div([
             html.H3('Turbine Locations')
@@ -57,7 +62,6 @@ app.layout = html.Div([
                         'color': '#42c4f7',
                     },
                     'text': turbine_locations.turbine_id,
-                    #'textposition': 'top center',
                     'hoverinfo': 'text',
                     'textfont': {
                         'size': 1,
@@ -76,11 +80,11 @@ app.layout = html.Div([
                             'lat': 42.66,
                             'lon': -76.61,
                         },
-                        'style': custom_map_style,
-                        'pitch': 0,
-                        'zoom': 7,
+                    'style': custom_map_style,
+                    'pitch': 0,
+                    'zoom': 7,
                     },
-                    'margin': {'l': 50, 'r': 50, 'b': 0, 't': 0}
+                    'margin': {'l': 0, 'r': 0, 'b': 0, 't': 0}
                 }
             }),
         ]),
@@ -88,7 +92,7 @@ app.layout = html.Div([
     html.Div([
         html.Div([
             html.Div([
-                html.H3('WIND SPEED HISTOGRAM')
+                html.H3('Wind Speed Histogram (10 years)')
             ], className='Title'),
             dcc.Graph(id='histogram'),
         ], className='seven columns wind-histogram'),
@@ -98,6 +102,11 @@ app.layout = html.Div([
             ], className='Title'),
             dt.DataTable(
                 id ='table',
+                #style_data={'whiteSpace': 'normal'},
+                css=[{
+                    'selector': '.dash-cell div.dash-cell-value',
+                    'rule': 'display: inline; white-space: inherit; overflow: inherit; text-overflow: inherit;'
+                }],
                 columns=[
                     {'name': 'Status', 'id': 'Status'},
                     {'name': 'Power (watts)', 'id': 'Power (watts)'},
@@ -108,27 +117,29 @@ app.layout = html.Div([
                     {'name': 'DC Voltage (VDC)', 'id': 'DC Voltage (VDC)'},
                     {'name': 'DC Current (amps)', 'id': 'DC Current (amps)'}
                 ],
-                style_cell_conditional=[
-                    {'if': {'column_id': 'Status'},
-                     'width': '130px'},
-                ],
-                data = [],
+                style_cell={
+                    'whiteSpace': 'no-wrap',
+                    'overflow': 'hidden',
+                    'textOverflow': 'ellipsis',
+                    'maxWidth': 0,
+                },
                 editable=True
-            )
-        ], className='wind-polar ')
+            ),
+            dcc.Interval(
+                id='interval-component',
+                interval=1*1000, # in milliseconds
+                n_intervals=0
+            ),
+        ], className='wind-polar'),
+        html.Div([
+            html.Div([
+                html.H3('Output Power (kW) from the last 72 hours')
+            ], className='Title'),
+            dcc.Graph(id='history'),
+        ], className='wind-polar')
     ], className='row wind-histo-polar'),
-    html.Div([
-        html.P('\
-            Status  .fm;km;ekfmk em;fm;e mfl;melmfmen ngnknkrngkr nkgnke;ms\
-            testfmkfkejfkjkefkekfkekfefjeieoifjiejfoiejfijefjo\
-            yaykfekfmkengnlrjkjgkrj jkjgkjrkgj; rjjkgjr kj;grk kjg\
-            yepsss lkgrkljgl kjgk jlkrjsjgk jkjgkjr jgkrslgjj jg', 
-            id='turbine-status'
-        ),
-    ], className='seven columns wind-histogram')
-
 ], style={'padding': '0px 10px 15px 10px',
-          'marginLeft': 'auto', 'marginRight': 'auto', "width": "900",
+          'marginLeft': 'auto', 'marginRight': 'auto', "width": "1080",
           'boxShadow': '0px 0px 5px 5px rgba(204,204,204,0.4)'})
 
 @app.callback(
@@ -136,18 +147,15 @@ app.layout = html.Div([
     [Input('map', 'clickData'),
     Input('dropdown','value')]
 )
-def closest_station(value1,value2):
-    if value1 != value2:
-        s = turbine_locations[turbine_locations['turbine_id'] == value2]
+def closest_station(clickData,value):
+    print(clickData)
+    if clickData != value:
+        s = turbine_locations[turbine_locations['turbine_id'] == value]
     else:
-        s = turbine_locations[turbine_locations['turbine_id'] == value1['points'][0]['text']]
+        s = turbine_locations[turbine_locations['turbine_id'] == clickData['points'][0]['text']]
 
     latitude = str(s.iloc[0]['latitude'])
     longitude = str(s.iloc[0]['longitude'])
-
-    #########################################################
-    ## Find closest weather station to turbine coordinates ##
-    #########################################################
     radius = '20'
 
     # Station metadata API URL
@@ -197,9 +205,9 @@ def closest_station(value1,value2):
         ),
     ),
     layout = go.Layout(
-        title='Wind Speed Frequency',
+        #title='Wind Speed Frequency (10 years)',
         xaxis=dict(
-            title='Wind Speed'
+            title='Wind Speed (m/s)'
         ),
         yaxis=dict(
             title='Frequency'
@@ -219,9 +227,10 @@ def update_dropdown(clickData):
 @app.callback(
     Output('table', 'data'),
     [Input('map','clickData'),
-    Input('dropdown', 'value')]
+    Input('dropdown', 'value'),
+    Input('interval-component', 'n_intervals')]
 )
-def turbine_status(clickData, value):
+def turbine_status(clickData, value, n):
 
     if clickData != value:
         turbine_id = value
@@ -246,8 +255,51 @@ def turbine_status(clickData, value):
         'DC Current (amps)': [json_data['inverter_dc_current']],
     }
     df = pd.DataFrame(data=d)
-
     return df.to_dict('rows')
 
+@app.callback(
+    Output('history','figure'),
+    [Input('dropdown','value'),
+    Input('map','clickData')]
+)
+def history(value,clickData):
+    if clickData != value:
+        value = value
+    else:
+        value = clickData['points'][0]['text']
+
+    api = 'http://mybergey.aprsworld.com/data/json-history.php?'
+    url = api + urllib.parse.urlencode({'station_id': value})+'&historyHours=72&_=1543611997109'
+    json_data = requests.get(url).json()
+
+    d = []
+    try:
+        for i in range(0, int(len(json_data['block']))):
+            d.append({'time': datetime.utcfromtimestamp(int(float(json_data['block'][i]['block_timestamp']))).isoformat(),
+                    'output': json_data['block'][i]['output_power_avg']})
+        df = pd.DataFrame(d)
+
+        trace0 = go.Scatter(
+            x=df.time,
+            y=df.output,
+            line = dict(
+                color = '#42c4f7',
+            ),
+            fill = 'tozeroy',
+        ),
+        layout = go.Layout(
+            xaxis=dict(
+                type='date',
+            )
+        )
+    except AttributeError:
+        trace0 = go.Scatter(
+            x=[],
+            y=[],
+        ),
+        layout = go.Layout()
+    figure = go.Figure(trace0,layout)
+    return figure
+    
 if __name__ == '__main__':
     app.run_server(debug=True)

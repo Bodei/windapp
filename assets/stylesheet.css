@@ -107,7 +107,7 @@ body{
 
 .wind-histo-polar .wind-histogram{
     border-radius: 5px;
-    width: 50%;
+    width: 100%;
     border: 1px solid rgb(216, 216, 216);
 }
 
@@ -127,8 +127,8 @@ body{
 .wind-histo-polar .wind-polar {
     border-radius: 5px;
     float: right;
-    height: 532px;
-    width: 49%;
+    height: auto;
+    width: 100%;
     margin-left: 0px;
     border: 1px solid rgb(216, 216, 216);
 }
