@@ -14,6 +14,7 @@ import time
 from closest_station import closest_station
 from datetime import datetime
 from station_status import station_status
+import os
 
 external_css = ["https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css",
                 "https://fonts.googleapis.com/css?family=Raleway:400,400i,700,700i",
@@ -23,11 +24,13 @@ custom_map_style = "mapbox://styles/mapbox/light-v9"
 turbine_locations = pd.read_csv('data/turbine_locations.csv')
 mapbox_access_token = 'pk.eyJ1IjoiY2JvZGVpIiwiYSI6ImNqbzY3eG4wejBlN3UzcXBiNTk1a3N4NWsifQ.rAUKKJtNfW5Mw2GX8Tdoag'
 token = '0939c8c78a5a460e8685922d985d500f' # API token
-output = 'json'    
+output = 'json'
 
 app = dash.Dash(__name__,
     external_stylesheets=external_css
 )
+server = app.server
+server.secret_key = os.environ.get('SECRET_KEY', 'my-secret-key')
 
 app.layout = html.Div([
     html.Div([
