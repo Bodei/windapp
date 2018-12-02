@@ -11,15 +11,15 @@ import requests
 import pandas as pd
 import plotly.figure_factory as ff
 import time
+from closest_station import closest_station
 from datetime import datetime
-## Load CSV data
+from station_status import station_status
 
 external_css = ["https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css",
                 "https://fonts.googleapis.com/css?family=Raleway:400,400i,700,700i",
                 "https://fonts.googleapis.com/css?family=Product+Sans:400,400i,700,700i"]
 
 custom_map_style = "mapbox://styles/mapbox/light-v9"
-
 turbine_locations = pd.read_csv('data/turbine_locations.csv')
 mapbox_access_token = 'pk.eyJ1IjoiY2JvZGVpIiwiYSI6ImNqbzY3eG4wejBlN3UzcXBiNTk1a3N4NWsifQ.rAUKKJtNfW5Mw2GX8Tdoag'
 token = '0939c8c78a5a460e8685922d985d500f' # API token
@@ -35,7 +35,7 @@ app.layout = html.Div([
     ], className='banner'),
     html.Div([
         html.Div([
-            html.H3('Select Turbine')           
+            html.H3('Selected Turbine')           
         ], className='Title'),
         html.Div([
             dcc.Dropdown(
@@ -91,14 +91,46 @@ app.layout = html.Div([
     ], className='row wind-speed-row'),
     html.Div([
         html.Div([
+            html.Data([
+                html.H3('Nearest Weather Station')
+            ], className='Title'),
+            dt.DataTable(
+                id ='table2',
+                #style_data={'whiteSpace': 'normal'},
+                css=[{
+                    'selector': '.dash-cell div.dash-cell-value',
+                    'rule': 'display: inline; white-space: inherit; overflow: inherit; text-overflow: inherit;'
+                }],
+                columns=[
+                    {'name': 'Name', 'id': 'Name'},
+                    {'name': 'Station ID', 'id': 'Station ID'},
+                    {'name': 'Wind Speed (m/s)', 'id': 'Wind Speed'},
+                    {'name': 'Wind Gust (m/s)', 'id': 'Wind Gust'},
+                    {'name': 'Wind Direction', 'id': 'Wind Direction'},
+                ],
+                style_cell={
+                    'whiteSpace': 'no-wrap',
+                    'overflow': 'hidden',
+                    'textOverflow': 'ellipsis',
+                    'maxWidth': 0,
+                },
+                editable=True
+            ),
+            dcc.Interval(
+                id='interval-component2',
+                interval=5*1000, # in milliseconds
+                n_intervals=0
+            ),
+        ], className='wind-polar'),
+        html.Div([
             html.Div([
                 html.H3('Wind Speed Histogram (10 years)')
             ], className='Title'),
             dcc.Graph(id='histogram'),
-        ], className='seven columns wind-histogram'),
+        ], className='wind-polar'),
         html.Div([
             html.Div([
-                html.H3('Turbine Status')
+                html.H3('Wind Turbine Status')
             ], className='Title'),
             dt.DataTable(
                 id ='table',
@@ -127,13 +159,13 @@ app.layout = html.Div([
             ),
             dcc.Interval(
                 id='interval-component',
-                interval=1*1000, # in milliseconds
+                interval=60*1000, # in milliseconds
                 n_intervals=0
             ),
         ], className='wind-polar'),
         html.Div([
             html.Div([
-                html.H3('Output Power (kW) from the last 72 hours')
+                html.H3('Output Power (Watts) from the last 72 hours')
             ], className='Title'),
             dcc.Graph(id='history'),
         ], className='wind-polar')
@@ -147,8 +179,8 @@ app.layout = html.Div([
     [Input('map', 'clickData'),
     Input('dropdown','value')]
 )
-def closest_station(clickData,value):
-    print(clickData)
+def update_histogram(clickData,value):
+
     if clickData != value:
         s = turbine_locations[turbine_locations['turbine_id'] == value]
     else:
@@ -156,45 +188,10 @@ def closest_station(clickData,value):
 
     latitude = str(s.iloc[0]['latitude'])
     longitude = str(s.iloc[0]['longitude'])
-    radius = '20'
 
-    # Station metadata API URL
-    metadata_api = 'https://api.synopticlabs.org/v2/stations/metadata?&'
+    station = closest_station(latitude,longitude)
 
-    # URL to be sent to API
-    url = metadata_api + urllib.parse.urlencode({'token': token,
-                                                 'output': output,
-                                                 'radius': latitude+','+longitude+','+radius,
-                                                 'limit': '10',
-                                                 'vars': 'wind_speed,wind_direction'
-                                                 })
-
-    # API GET request
-    json_data = requests.get(url).json()
-    json_number_of_stations = json_data['SUMMARY']['NUMBER_OF_OBJECTS']
-
-    # Intialize lists
-    station_id = []
-    station_distance = []
-    station_index = []
-
-    for i in range(0, int(json_number_of_stations)):
-        json_period_start = json_data['STATION'][i]['PERIOD_OF_RECORD']['start']
-        json_period_end = json_data['STATION'][i]['PERIOD_OF_RECORD']['end']
-        json_station_id = json_data['STATION'][i]['STID']
-        json_station_distance = json_data['STATION'][i]['DISTANCE']
-        if (int(json_period_end[:-16]) - int(json_period_start[:-16])) >= 9:
-            station_distance.insert(i,json_station_distance)
-            station_id.insert(i,json_station_id)
-            station_index.insert(i,i)
-    if not station_distance:
-        print('No weather stations within ' + radius + ' miles have 10 years of wind speed data, try increasing range.')
-        quit()
-
-    min_station_distance = min(station_distance)
-    min_station_distance_idx = station_distance.index(min_station_distance)
-    closest_station = station_id[min_station_distance_idx]
-    df = pd.read_csv('data/'+closest_station+'.csv')
+    df = pd.read_csv('data/'+station+'.csv')
 
     trace0 = go.Histogram(
         x=df.wind_speed,
@@ -294,12 +291,32 @@ def history(value,clickData):
         )
     except AttributeError:
         trace0 = go.Scatter(
-            x=[],
-            y=[],
+            x=[0],
+            y=[0],
         ),
-        layout = go.Layout()
-    figure = go.Figure(trace0,layout)
+        #layout = go.Layout()
+    figure = go.Figure(trace0)
     return figure
-    
+@app.callback(
+    Output('table2', 'data'),
+    [Input('map','clickData'),
+    Input('dropdown', 'value'),
+    Input('interval-component', 'n_intervals')]
+)
+def station_status_update(clickData, value, n):
+    if clickData != value:
+        s = turbine_locations[turbine_locations['turbine_id'] == value]
+    else:
+        s = turbine_locations[turbine_locations['turbine_id'] == clickData['points'][0]['text']]
+
+    latitude = str(s.iloc[0]['latitude'])
+    longitude = str(s.iloc[0]['longitude'])
+
+    station = closest_station(latitude,longitude)
+
+    d = station_status(station)
+    df = pd.DataFrame([d])
+    return df.to_dict('rows')
+
 if __name__ == '__main__':
     app.run_server(debug=True)
