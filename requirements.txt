@@ -80,7 +80,6 @@ pysolar==0.8
 python-dateutil==2.7.5
 pytoml==0.1.19
 pytz==2018.5
-pywinpty==0.5.4
 PyYAML==3.13
 pyzmq==17.1.2
 qtconsole==4.4.3
