@@ -4,7 +4,6 @@ astroid==2.0.4
 autopep8==1.4.3
 backcall==0.1.0
 bleach==3.0.2
-bokeh==1.0.1
 branca==0.3.1
 CacheControl==0.12.5
 certifi==2018.8.24
@@ -30,7 +29,6 @@ docutils==0.14
 entrypoints==0.2.3
 Flask==1.0.2
 Flask-Compress==1.4.0
-folium==0.6.0
 geos==0.2.1
 gunicorn==19.9.0
 html5lib==1.0.1
@@ -99,9 +97,6 @@ tornado==5.1.1
 traitlets==4.3.2
 typing==3.6.6
 urllib3==1.23
-vega==1.4.0
-vega-datasets==0.5.0
-vincent==0.4.4
 virtualenv==16.0.0
 virtualenv-clone==0.3.0
 wcwidth==0.1.7
