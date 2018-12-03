@@ -1,24 +1,18 @@
 import urllib.parse
 import requests
-import pandas as pd
-import time
-import datetime
-import numpy as np
 
 token = '0939c8c78a5a460e8685922d985d500f'
 api = 'https://api.synopticdata.com/v2/stations/latest?'
 
 def station_status(station):
-    #end = datetime.datetime.now().strftime('%Y%m%d%H%M')
     url = api + urllib.parse.urlencode({
                                             'token': token,
-                                            'stid': station,
+                                            'stid': str(station),
                                             'units': 'metric',
                                             'obtimezone': 'local',
                                             'within': '60',
                                             'vars': 'wind_speed,wind_cardinal_direction,wind_gust',
                                             'output': 'json'})
-
     json_data = requests.get(url).json()
     try:
         name = json_data['STATION'][0]['NAME']
@@ -48,5 +42,3 @@ def station_status(station):
         'Wind Direction': wind_direction
     }
     return d
-d = station_status('C1656')
-print(d)
