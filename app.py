@@ -376,7 +376,8 @@ def wind_history(value,clickData,n):
     layout = go.Layout(
         xaxis=dict(
            type='date',
-        )
+        ),
+        legend=dict(orientation="h")
     )
     data = go.Data([trace0,trace1])
     figure = go.Figure(data,layout)
@@ -412,7 +413,7 @@ def update_power(value,clickData,n):
     layout = go.Layout(
         xaxis=dict(
            type='date',
-        )
+        ),
     )
     data = go.Data([trace0])
     figure = go.Figure(data,layout)

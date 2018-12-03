@@ -10,13 +10,13 @@ def closest_station(latitude, longitude):
     #########################################################
     ## Find closest weather station to turbine coordinates ##
     #########################################################
-    radius = '20'
+    radius = '30'
 
     # Station metadata API URL
     metadata_api = 'https://api.synopticlabs.org/v2/stations/metadata?&'
 
     # URL to be sent to API
-    url = metadata_api + urllib.parse.urlencode({'token': token,'output': output, 'radius': str(latitude)+','+str(longitude)+','+radius, 'limit': '10', 'vars': 'wind_speed,wind_direction'})
+    url = metadata_api + urllib.parse.urlencode({'token': token,'output': output, 'radius': str(latitude)+','+str(longitude)+','+radius, 'limit': '10', 'vars': 'wind_speed,wind_gust'})
 
     # API GET request
     json_data = requests.get(url).json()

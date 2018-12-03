@@ -39,7 +39,7 @@ def expected_power(station):
 
         d2 = ({'time': df.time, 'power': power_output})
         #df2 = pd.DataFrame(d2)
-    except IndexError:
+    except:
         d2 = ({'time': [], 'power': []})
     df = pd.DataFrame(d2)
     return df
