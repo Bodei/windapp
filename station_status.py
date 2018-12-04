@@ -1,5 +1,6 @@
 import urllib.parse
 import requests
+import pandas as pd
 
 token = '0939c8c78a5a460e8685922d985d500f'
 api = 'https://api.synopticdata.com/v2/stations/latest?'
@@ -9,8 +10,7 @@ def station_status(station):
                                             'token': token,
                                             'stid': str(station),
                                             'units': 'metric',
-                                            #'obtimezone': 'local',
-                                            'timeformat': '%s',
+                                            'obtimezone': 'UTC',
                                             'within': '60',
                                             'vars': 'wind_speed,wind_cardinal_direction,wind_gust',
                                             'output': 'json'})
@@ -43,5 +43,5 @@ def station_status(station):
         'Wind Gust': wind_gust,
         'Wind Direction': wind_direction
     }
-    return d
+    return pd.DataFrame(d, index=[0])
 #print(station_status('KSDC'))

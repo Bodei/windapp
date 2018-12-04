@@ -7,7 +7,7 @@ import numpy as np
 
 token = '0939c8c78a5a460e8685922d985d500f'
 api = 'https://api.synopticdata.com/v2/stations/timeseries?'
-
+lookup = pd.read_csv('data/power_curve.csv')
 def expected_power(station):
     try:
         url = api + urllib.parse.urlencode({
@@ -30,7 +30,6 @@ def expected_power(station):
         'wind_speed': wind_speed})
         df = pd.DataFrame(d)
 
-        lookup = pd.read_csv('data/power_curve.csv')
         power_output = []
         for i in df.wind_speed:
             power_output.append(lookup.power_output[lookup.wind_speed[lookup.wind_speed == i].index.tolist()].tolist())
