@@ -201,6 +201,10 @@ app.layout = html.Div([
                 n_intervals=0
             ),
         ], className='wind-polar'),
+        html.Div([
+            html.A(html.Button('GitHub', className='three columns'),
+            href='https://github.com/bodei/windapp'),
+        ], className='wind-polar'),
     ], className='row wind-histo-polar'),
 ], style={'padding': '0px 10px 15px 10px',
           'marginLeft': 'auto', 'marginRight': 'auto', "width": "1080",
