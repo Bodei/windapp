@@ -140,7 +140,6 @@ app.layout = html.Div([
             ], className='Title'),
             dt.DataTable(
                 id ='table',
-                #style_data={'whiteSpace': 'normal'},
                 css=[{
                     'selector': '.dash-cell div.dash-cell-value',
                     'rule': 'display: inline; white-space: inherit; overflow: inherit; text-overflow: inherit;'
@@ -176,7 +175,7 @@ app.layout = html.Div([
             dcc.Graph(id='history'),
             dcc.Interval(
                 id='interval-component-3',
-                interval=300*1000, # in milliseconds
+                interval=60*1000, # in milliseconds
                 n_intervals=0
             ),
         ], className='wind-polar'),
@@ -187,7 +186,7 @@ app.layout = html.Div([
             dcc.Graph(id='power'),
             dcc.Interval(
                 id='interval-component-4',
-                interval=300*1000, # in milliseconds
+                interval=60*1000, # in milliseconds
                 n_intervals=0
             ),
         ], className='wind-polar'),
@@ -198,7 +197,7 @@ app.layout = html.Div([
             dcc.Graph(id='wind_history'),
             dcc.Interval(
                 id='interval-component-5',
-                interval=300*1000, # in milliseconds
+                interval=60*1000, # in milliseconds
                 n_intervals=0
             ),
         ], className='wind-polar'),
@@ -206,6 +205,35 @@ app.layout = html.Div([
 ], style={'padding': '0px 10px 15px 10px',
           'marginLeft': 'auto', 'marginRight': 'auto', "width": "1080",
           'boxShadow': '0px 0px 5px 5px rgba(204,204,204,0.4)'})
+
+@app.callback(
+    Output('dropdown', 'value'),
+    [Input('map','clickData')]
+)
+def update_dropdown(clickData):
+    value = clickData['points'][0]['text']
+    return value
+
+@app.callback(
+    Output('table2', 'data'),
+    [Input('map','clickData'),
+    Input('dropdown', 'value'),
+    Input('interval-component', 'n_intervals')]
+)
+def station_status_update(clickData, value, n):
+    if clickData != value:
+        s = turbine_locations[turbine_locations['turbine_id'] == value]
+    else:
+        s = turbine_locations[turbine_locations['turbine_id'] == clickData['points'][0]['text']]
+
+    latitude = str(s.iloc[0]['latitude'])
+    longitude = str(s.iloc[0]['longitude'])
+
+    station = closest_station(latitude,longitude)
+
+    d = station_status(station)
+    df = pd.DataFrame([d])
+    return df.to_dict('rows')
 
 @app.callback(
     Output('histogram', 'figure'),
@@ -235,7 +263,6 @@ def update_histogram(clickData,value):
         ),
     ),
     layout = go.Layout(
-        #title='Wind Speed Frequency (10 years)',
         xaxis=dict(
             title='Wind Speed (m/s)'
         ),
@@ -245,14 +272,6 @@ def update_histogram(clickData,value):
     )
     figure = go.Figure(trace0,layout)
     return figure
-
-@app.callback(
-    Output('dropdown', 'value'),
-    [Input('map','clickData')]
-)
-def update_dropdown(clickData):
-    value = clickData['points'][0]['text']
-    return value
 
 @app.callback(
     Output('table', 'data'),
@@ -316,25 +335,56 @@ def history(value,clickData,n):
     return figure
 
 @app.callback(
-    Output('table2', 'data'),
-    [Input('map','clickData'),
-    Input('dropdown', 'value'),
-    Input('interval-component', 'n_intervals')]
+    Output('power','figure'),
+    [Input('dropdown','value'),
+    Input('map','clickData'),
+    Input('interval-component-4', 'n_intervals')]
 )
-def station_status_update(clickData, value, n):
+def update_power(value,clickData,n):
     if clickData != value:
         s = turbine_locations[turbine_locations['turbine_id'] == value]
     else:
         s = turbine_locations[turbine_locations['turbine_id'] == clickData['points'][0]['text']]
+    
+    if clickData != value:
+        value = value
+    else:
+        value = clickData['points'][0]['text']
 
     latitude = str(s.iloc[0]['latitude'])
     longitude = str(s.iloc[0]['longitude'])
 
     station = closest_station(latitude,longitude)
+    df = expected_power(station)
+    df2 = turbine_history(value)
 
-    d = station_status(station)
-    df = pd.DataFrame([d])
-    return df.to_dict('rows')
+    trace0 = go.Scattergl(
+        x=df.time,
+        y=df.power,
+        name='Expected Power',
+        line = dict(
+            color = '#42c4f7',
+        ),
+        fill = 'tozeroy',
+    )
+    trace1 = go.Scatter(
+        x=df2.time,
+        y=df2.output,
+        name='Actual Power',
+        line = dict(
+            color = 'red',
+        ),
+        fill = 'tozeroy',
+        visible='legendonly',
+    )
+    layout = go.Layout(
+        xaxis=dict(
+           type='date',
+        ),
+    )
+    data = [trace0, trace1]
+    figure = go.Figure(data,layout)
+    return figure
 
 @app.callback(
     Output('wind_history','figure'),
@@ -354,7 +404,7 @@ def wind_history(value,clickData,n):
     station = closest_station(latitude,longitude)
     windGust,windSpeed,date = wind_gust(station)
 
-    trace0 = go.Scatter(
+    trace0 = go.Scattergl(
         x=date,
         y=windGust,
         name='Wind Gust',
@@ -363,7 +413,7 @@ def wind_history(value,clickData,n):
         ),
         fill = 'tozeroy',
     )
-    trace1 = go.Scatter(
+    trace1 = go.Scattergl(
         x=date,
         y=windSpeed,
         name='Wind Speed',
@@ -377,45 +427,9 @@ def wind_history(value,clickData,n):
         xaxis=dict(
            type='date',
         ),
-        legend=dict(orientation="h")
+        #legend=dict(orientation="h")
     )
-    data = go.Data([trace0,trace1])
-    figure = go.Figure(data,layout)
-    return figure
-
-@app.callback(
-    Output('power','figure'),
-    [Input('dropdown','value'),
-    Input('map','clickData'),
-    Input('interval-component-4', 'n_intervals')]
-)
-def update_power(value,clickData,n):
-    if clickData != value:
-        s = turbine_locations[turbine_locations['turbine_id'] == value]
-    else:
-        s = turbine_locations[turbine_locations['turbine_id'] == clickData['points'][0]['text']]
-
-    latitude = str(s.iloc[0]['latitude'])
-    longitude = str(s.iloc[0]['longitude'])
-
-    station = closest_station(latitude,longitude)
-    df = expected_power(station)
-
-    trace0 = go.Scatter(
-        x=df.time,
-        y=df.power,
-        name='Expected Power',
-        line = dict(
-            color = '#42c4f7',
-        ),
-        fill = 'tozeroy',
-    )
-    layout = go.Layout(
-        xaxis=dict(
-           type='date',
-        ),
-    )
-    data = go.Data([trace0])
+    data = [trace0,trace1]
     figure = go.Figure(data,layout)
     return figure
 

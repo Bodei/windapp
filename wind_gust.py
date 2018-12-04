@@ -15,7 +15,8 @@ def wind_gust(station):
                                             'units': 'metric',
                                             'recent': '4320',
                                             'vars': 'wind_speed,wind_gust',
-                                            'obtimezone': 'local',
+                                            #'timeformat': '%b%20%d%20%Y%20-%20%H:%M',
+                                            'obtimezone': 'UTC',
                                             'output': 'json'})
 
     json_data = requests.get(url).json()
@@ -29,6 +30,6 @@ def wind_gust(station):
         date_time = [0]
 
     return wind_gust, wind_speed, date_time
-x,y,z =wind_gust('C7832')
-print(z)
+#x,y,z =wind_gust('C7832')
+
 

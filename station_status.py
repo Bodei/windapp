@@ -9,11 +9,13 @@ def station_status(station):
                                             'token': token,
                                             'stid': str(station),
                                             'units': 'metric',
-                                            'obtimezone': 'local',
+                                            #'obtimezone': 'local',
+                                            'timeformat': '%s',
                                             'within': '60',
                                             'vars': 'wind_speed,wind_cardinal_direction,wind_gust',
                                             'output': 'json'})
     json_data = requests.get(url).json()
+    #print(json_data)
     try:
         name = json_data['STATION'][0]['NAME']
     except:
@@ -42,3 +44,4 @@ def station_status(station):
         'Wind Direction': wind_direction
     }
     return d
+#print(station_status('KSDC'))

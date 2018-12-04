@@ -16,7 +16,12 @@ def closest_station(latitude, longitude):
     metadata_api = 'https://api.synopticlabs.org/v2/stations/metadata?&'
 
     # URL to be sent to API
-    url = metadata_api + urllib.parse.urlencode({'token': token,'output': output, 'radius': str(latitude)+','+str(longitude)+','+radius, 'limit': '10', 'vars': 'wind_speed,wind_gust'})
+    url = metadata_api + urllib.parse.urlencode({'token': token,
+                                                 'output': output,
+                                                 'radius': str(latitude)+','+str(longitude)+','+radius,
+                                                 'status': 'active',
+                                                 'limit': '10',
+                                                 'vars': 'wind_speed,wind_gust,wind_direction,peak_wind_speed'})
 
     # API GET request
     json_data = requests.get(url).json()
@@ -43,3 +48,5 @@ def closest_station(latitude, longitude):
     closest_station = station_id[min_station_distance_idx]
  
     return closest_station
+
+#print(closest_station(43.26304252,-77.06442432))

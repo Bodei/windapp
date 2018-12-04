@@ -16,7 +16,7 @@ def expected_power(station):
                                             'units': 'metric',
                                             'recent': '4320',
                                             'vars': 'wind_gust',
-                                            'obtimezone': 'local',
+                                            'obtimezone': 'UTC',
                                             'output': 'json'})
 
         json_data = requests.get(url).json()
