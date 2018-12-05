@@ -10,7 +10,7 @@ def closest_station(latitude, longitude):
     #########################################################
     ## Find closest weather station to turbine coordinates ##
     #########################################################
-    radius = '30'
+    radius = '20'
 
     # Station metadata API URL
     metadata_api = 'https://api.synopticlabs.org/v2/stations/metadata?&'

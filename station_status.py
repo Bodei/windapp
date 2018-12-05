@@ -4,15 +4,18 @@ import pandas as pd
 
 token = '0939c8c78a5a460e8685922d985d500f'
 api = 'https://api.synopticdata.com/v2/stations/latest?'
+radius = '14'
 
-def station_status(station):
+def station_status(latitude,longitude):
     url = api + urllib.parse.urlencode({
                                             'token': token,
-                                            'stid': str(station),
                                             'units': 'metric',
+                                            'radius': str(latitude)+','+str(longitude)+','+radius,
                                             'obtimezone': 'UTC',
                                             'within': '60',
-                                            'vars': 'wind_speed,wind_cardinal_direction,wind_gust',
+                                            'status': 'active',
+                                            'limit': '1',
+                                            'vars': 'wind_speed,wind_gust,wind_direction',
                                             'output': 'json'})
     json_data = requests.get(url).json()
     #print(json_data)

@@ -7,21 +7,26 @@ import numpy as np
 
 token = '0939c8c78a5a460e8685922d985d500f'
 api = 'https://api.synopticdata.com/v2/stations/timeseries?'
+radius = '14'
 lookup = pd.read_csv('data/power_curve.csv')
-def expected_power(station):
+
+def expected_power(latitude,longitude):
     try:
         url = api + urllib.parse.urlencode({
                                             'token': token,
-                                            'stid': station,
                                             'units': 'metric',
+                                            'radius': str(latitude)+','+str(longitude)+','+radius,
                                             'recent': '4320',
-                                            'vars': 'wind_gust',
+                                            'status': 'active',
+                                            'vars': 'wind_speed,wind_gust,wind_direction',
+                                            'limit': '1',
                                             'obtimezone': 'UTC',
                                             'output': 'json'})
 
         json_data = requests.get(url).json()
-
+        #print(json_data)
         list_one = json_data['STATION'][0]['OBSERVATIONS']['wind_gust_set_1']
+        list_one= [0 if i is None else i for i in list_one]
         list_two = [i * 2 for i in list_one]
         list_three = [int(round(i, 0)) for i in list_two]
         wind_speed = [i / 2 for i in list_three]

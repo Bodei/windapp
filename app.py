@@ -64,7 +64,7 @@ app.layout = html.Div([
                     'lon': turbine_locations.longitude,
                     'mode': 'markers+text',
                     'marker': {
-                        'size': 15,
+                        'size': 10,
                         'symbol': 'circle',
                         'color': '#42c4f7',
                     },
@@ -197,9 +197,14 @@ app.layout = html.Div([
             dcc.Graph(id='wind_history'),
         ], className='wind-histogram'),
         html.Div([
+                html.Div([
+                    html.H3('Links')
+                ], className='Title'),
             html.A(html.Button('GitHub', className='three columns'),
             href='https://github.com/bodei/windapp'),
-        ], className='wind-polar'),
+            html.A(html.Button('Mesonet API', className='three columns'),
+            href='https://developers.synopticdata.com/'),
+        ], className='wind-histogram'),
     ], className='row wind-histo-polar'),
 ], style={'padding': '0px 10px 15px 10px',
           'marginLeft': 'auto', 'marginRight': 'auto', "width": "1080",
@@ -210,7 +215,10 @@ app.layout = html.Div([
     [Input('map','clickData')]
 )
 def update_dropdown(clickData):
-    value = clickData['points'][0]['text']
+    if clickData == None:
+        value = 'A4448'
+    else:
+        value = clickData['points'][0]['text']
     return value
 
 @app.callback(
@@ -219,14 +227,14 @@ def update_dropdown(clickData):
     Input('update', 'n_intervals')]
 )
 def update_station_status(value, n):
+    if value == None:
+        value = 'A4448'
+    
     s = turbine_locations[turbine_locations['turbine_id'] == value]
-
     latitude = str(s.iloc[0]['latitude'])
     longitude = str(s.iloc[0]['longitude'])
 
-    station = closest_station(latitude,longitude)
-
-    df = station_status(station)
+    df = station_status(latitude,longitude)
     return df.to_dict('rows')
 
 @app.callback(
@@ -235,6 +243,9 @@ def update_station_status(value, n):
     Input('bin-slider', 'value')]
 )
 def update_histogram(value,sliderValue):
+    if value == None:
+        value = 'A4448'
+
     s = turbine_locations[turbine_locations['turbine_id'] == value]
 
     latitude = str(s.iloc[0]['latitude'])
@@ -242,14 +253,20 @@ def update_histogram(value,sliderValue):
 
     station = closest_station(latitude,longitude)
 
-    df = pd.read_csv('data/'+station+'.csv')
+    try:
+        df = pd.read_csv('data/'+station+'.csv')
+    except FileNotFoundError:
+        df = pd.DataFrame(
+            {'wind_speed': [0]}
+        )
 
-    bin_val = sliderValue
+    avg_val = float(sum(df.wind_speed))/len(df.wind_speed)
+    median_val = np.median(df.wind_speed)
 
     trace0 = go.Histogram(
         x=df.wind_speed,
-        histnorm='probability',
-        nbinsx = bin_val,
+        histnorm='percent',
+        nbinsx = sliderValue,
         marker=dict(
             color='#42c4f7'
         ),
@@ -259,7 +276,7 @@ def update_histogram(value,sliderValue):
             title='Wind Speed (m/s)'
         ),
         yaxis=dict(
-            title='Frequency'
+            title='Frequency (%)'
         ),
     )
     figure = go.Figure(trace0,layout)
@@ -271,11 +288,12 @@ def update_histogram(value,sliderValue):
     Input('update', 'n_intervals')]
 )
 def update_turbine_status(value, n):
-    turbine_id = value
+    if value == None:
+        value = 'A4448'
 
     turbine_api_status = 'http://mybergey.aprsworld.com/data/jsonMyBergey.php?'
     url= turbine_api_status + urllib.parse.urlencode({
-        'station_id': turbine_id,
+        'station_id': value,
         'statsHours': '24',
     })+'&_=1543523946153'
 
@@ -299,6 +317,8 @@ def update_turbine_status(value, n):
     Input('update', 'n_intervals')]
 )
 def turbine_power_history(value,n):
+    if value == None:
+        value = 'A4448'
     df = turbine_history(value)
 
     trace0 = go.Scattergl(
@@ -328,13 +348,16 @@ def update_bin_number(value):
     Input('update', 'n_intervals')]
 )
 def update_expected_power(value,n):
+    if value == None:
+        value = 'A4448'
+    else:
+        value = value       
     s = turbine_locations[turbine_locations['turbine_id'] == value]
     
     latitude = str(s.iloc[0]['latitude'])
     longitude = str(s.iloc[0]['longitude'])
 
-    station = closest_station(latitude,longitude)
-    df = expected_power(station)
+    df = expected_power(latitude,longitude)
     df2 = turbine_history(value)
 
     trace0 = go.Scattergl(
@@ -371,14 +394,16 @@ def update_expected_power(value,n):
     Input('update', 'n_intervals')]
 )
 def update_wind_history(value,n):
-    
+    if value == None:
+        value = 'A4448'
+    else:
+        value = value
     s = turbine_locations[turbine_locations['turbine_id'] == value]
 
-    lat = str(s.iloc[0]['latitude'])
-    lon = str(s.iloc[0]['longitude'])
+    latitude = str(s.iloc[0]['latitude'])
+    longitude = str(s.iloc[0]['longitude'])
 
-    station = closest_station(lat,lon)
-    df = wind_speed(station)
+    df = wind_speed(latitude,longitude)
 
     trace0 = go.Scattergl(
         x=df.date_time,

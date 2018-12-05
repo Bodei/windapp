@@ -8,21 +8,26 @@ import pandas as pd
 
 token = '0939c8c78a5a460e8685922d985d500f'
 api = 'https://api.synopticdata.com/v2/stations/timeseries?'
+radius = '14'
 
-def wind_speed(station):
+def wind_speed(latitude,longitude):
     url = api + urllib.parse.urlencode({
                                             'token': token,
-                                            'stid': station,
                                             'units': 'metric',
+                                            'radius': str(latitude)+','+str(longitude)+','+radius,
                                             'recent': '4320',
-                                            'vars': 'wind_speed,wind_gust',
+                                            'status': 'active',
+                                            'vars': 'wind_speed,wind_gust,wind_direction',
+                                            'limit': '1',
                                             'obtimezone': 'UTC',
                                             'output': 'json'})
 
     json_data = requests.get(url).json()
     try:
-        wind_gust = json_data['STATION'][0]['OBSERVATIONS']['wind_gust_set_1']
-        wind_speed = json_data['STATION'][0]['OBSERVATIONS']['wind_speed_set_1']
+        json_wind_gust = json_data['STATION'][0]['OBSERVATIONS']['wind_gust_set_1']
+        wind_gust= [0 if i is None else i for i in json_wind_gust]
+        json_wind_speed = json_data['STATION'][0]['OBSERVATIONS']['wind_speed_set_1']
+        wind_speed= [0 if i is None else i for i in json_wind_speed]
         date_time = json_data['STATION'][0]['OBSERVATIONS']['date_time']
     except:
         wind_gust = [0]
