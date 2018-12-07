@@ -146,6 +146,7 @@ app.layout = html.Div([
                 ),
             ], className='histogram-slider'),
             dcc.Interval(id='update', interval=10*1000, n_intervals=0),
+            dcc.Irterval(id='update-graph', interval=240*1000, n_intervals=0),
             html.P('# of Bins: 50', id='bin-size', className='bin-size'),
             dcc.Graph(id='histogram'),
         ], className='wind-histogram'),
@@ -314,7 +315,7 @@ def update_turbine_status(value, n):
 @app.callback(
     Output('history','figure'),
     [Input('dropdown','value'),
-    Input('update', 'n_intervals')]
+    Input('update_graph', 'n_intervals')]
 )
 def turbine_power_history(value,n):
     if value == None:
@@ -345,7 +346,7 @@ def update_bin_number(value):
 @app.callback(
     Output('power','figure'),
     [Input('dropdown','value'),
-    Input('update', 'n_intervals')]
+    Input('update_graph', 'n_intervals')]
 )
 def update_expected_power(value,n):
     if value == None:
@@ -391,7 +392,7 @@ def update_expected_power(value,n):
 @app.callback(
     Output('wind_history','figure'),
     [Input('dropdown','value'),
-    Input('update', 'n_intervals')]
+    Input('update_graph', 'n_intervals')]
 )
 def update_wind_history(value,n):
     if value == None:
