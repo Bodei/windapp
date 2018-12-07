@@ -146,7 +146,7 @@ app.layout = html.Div([
                 ),
             ], className='histogram-slider'),
             dcc.Interval(id='update', interval=10*1000, n_intervals=0),
-            dcc.Irterval(id='update-graph', interval=240*1000, n_intervals=0),
+            dcc.Interval(id='update_graph', interval=240*1000, n_intervals=0),
             html.P('# of Bins: 50', id='bin-size', className='bin-size'),
             dcc.Graph(id='histogram'),
         ], className='wind-histogram'),
