@@ -418,8 +418,8 @@ def update_efficiency(value,n):
     print(len(df.power))
     print(len(df2.output))
 
-    eff1 = df.power.sum()
-    eff2 = df2.output.sum()
+    eff1 = df.power.mean()
+    eff2 = df2.output.mean()
     print(eff1)
     print(eff2)
     eff = (eff2/eff1)*100
