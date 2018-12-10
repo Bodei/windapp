@@ -19,7 +19,7 @@ def wind_speed(latitude,longitude):
                                             'status': 'active',
                                             'vars': 'wind_speed,wind_gust,wind_direction',
                                             'limit': '1',
-                                            'obtimezone': 'UTC',
+                                            'obtimezone': 'local',
                                             'output': 'json'})
 
     json_data = requests.get(url).json()
@@ -38,7 +38,13 @@ def wind_speed(latitude,longitude):
         'wind_speed': wind_speed,
         'date_time': date_time,
     }
-    return pd.DataFrame(d)
-#df = wind_gust('C7832')
+
+    df = pd.DataFrame(d)
+    df['NewDateTime'] = pd.to_datetime(df['date_time'])
+    df.index = df['NewDateTime']
+    
+    #print(df_p)
+    return df.resample('15T').mean()
+#wind_speed(43.2243219,-78.84384014)
 
 

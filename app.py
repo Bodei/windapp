@@ -186,6 +186,7 @@ app.layout = html.Div([
             dcc.Graph(id='history'),
         ], className='wind-histogram'),
         html.Div([
+            html.P('Turbine efficiency: 80%', id='efficiency', className='bin-size'),
             html.Div([
                 html.H3('Expected Power (Watts) from the last 72 hours')
             ], className='Title'),
@@ -323,7 +324,7 @@ def turbine_power_history(value,n):
     df = turbine_history(value)
 
     trace0 = go.Scattergl(
-        x=df.time,
+        x=df.index,
         y=df.output,
         line = dict(
             color = '#42c4f7',
@@ -362,7 +363,7 @@ def update_expected_power(value,n):
     df2 = turbine_history(value)
 
     trace0 = go.Scattergl(
-        x=df.time,
+        x=df.index,
         y=df.power,
         name='Expected Power',
         line = dict(
@@ -371,7 +372,7 @@ def update_expected_power(value,n):
         fill = 'tozeroy',
     )
     trace1 = go.Scattergl(
-        x=df2.time,
+        x=df.index,
         y=df2.output,
         name='Actual Power',
         line = dict(
@@ -388,6 +389,36 @@ def update_expected_power(value,n):
     data = [trace0, trace1]
     figure = go.Figure(data,layout)
     return figure
+
+@app.callback(
+    Output('efficiency', 'children'),
+    [Input('dropdown', 'value'),
+    Input('update_graph', 'n_intervals')],
+)
+
+def update_efficiency(value,n):
+    if value == None:
+        value = 'A4448'
+    else:
+        value = value       
+    s = turbine_locations[turbine_locations['turbine_id'] == value]
+    
+    latitude = str(s.iloc[0]['latitude'])
+    longitude = str(s.iloc[0]['longitude'])
+
+    df = expected_power(latitude,longitude)
+    df2 = turbine_history(value)
+
+    print(len(df.power))
+    print(len(df2.output))
+
+    eff1 = df.power.sum()
+    eff2 = df2.output.sum()
+    print(eff1)
+    print(eff2)
+    eff = (eff2/eff1)*100
+
+    return 'Turbine efficiency: ' + str(round(eff)) + '%'
 
 @app.callback(
     Output('wind_history','figure'),
@@ -407,7 +438,7 @@ def update_wind_history(value,n):
     df = wind_speed(latitude,longitude)
 
     trace0 = go.Scattergl(
-        x=df.date_time,
+        x=df.index,
         y=df.wind_gust,
         name='Wind Gust',
         line = dict(
@@ -416,7 +447,7 @@ def update_wind_history(value,n):
         fill = 'tozeroy',
     )
     trace1 = go.Scattergl(
-        x=df.date_time,
+        x=df.index,
         y=df.wind_speed,
         name='Wind Speed',
         mode='lines',

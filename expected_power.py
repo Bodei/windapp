@@ -20,7 +20,7 @@ def expected_power(latitude,longitude):
                                             'status': 'active',
                                             'vars': 'wind_speed,wind_gust,wind_direction',
                                             'limit': '1',
-                                            'obtimezone': 'UTC',
+                                            'obtimezone': 'local',
                                             'output': 'json'})
 
         json_data = requests.get(url).json()
@@ -46,4 +46,6 @@ def expected_power(latitude,longitude):
     except:
         d2 = ({'time': [], 'power': []})
     df = pd.DataFrame(d2)
-    return df
+    df['NewDateTime'] = pd.to_datetime(df['time'])
+    df.index = df['NewDateTime']
+    return df.resample('15T').mean()

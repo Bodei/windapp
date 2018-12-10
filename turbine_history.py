@@ -1,7 +1,7 @@
 import urllib.parse
 import requests
 import pandas as pd
-from datetime import datetime
+from datetime import datetime , timezone
 from dateutil import tz
 
 def turbine_history(turbine_id):
@@ -13,9 +13,10 @@ def turbine_history(turbine_id):
     json_data = requests.get(url).json()
 
     for i in range(0, int(len(json_data['block']))):
-        d.append({'time': (datetime.utcfromtimestamp(int(float(json_data['block'][i]['block_timestamp'])))).replace(tzinfo=from_zone).astimezone(to_zone),
+        d.append({'time': datetime.fromtimestamp(int(float(json_data['block'][i]['block_timestamp'])),timezone.utc),
                 'output': json_data['block'][i]['output_power_avg']})
     df = pd.DataFrame(d)
+
     if df.empty == True:
         d = {
             'time': [0],
@@ -23,5 +24,12 @@ def turbine_history(turbine_id):
         }
         df = pd.DataFrame(d)
 
+    else:
+        df['DateTime'] = pd.to_datetime(df['time'])
+        df.index = df['DateTime']
+        df = df.drop(['time','DateTime'],axis=1)
+        df=df.astype(float)
+        df = df.resample('15T').mean()
+
     return df
-#print(turbine_history('A4448'))
+print(turbine_history('A5019'))
