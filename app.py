@@ -333,6 +333,9 @@ def turbine_power_history(value,n):
     ),
     layout = go.Layout(
         #type='date',
+        yaxis = dict(
+            title = 'Power (Watts)'
+        ),
     )
     figure = go.Figure(trace0,layout)
     return figure
@@ -384,6 +387,9 @@ def update_expected_power(value,n):
     layout = go.Layout(
         xaxis=dict(
            type='date',
+        ),
+        yaxis = dict(
+            title = 'Power (Watts)'
         ),
     )
     data = [trace0, trace1]
@@ -459,7 +465,10 @@ def update_wind_history(value,n):
     layout = go.Layout(
         xaxis=dict(
            type='date',
-        )
+        ),
+        yaxis = dict(
+            title = 'Wind Speed (m/s)'
+        ),
     )
     data = [trace0,trace1]
     figure = go.Figure(data,layout)

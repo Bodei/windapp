@@ -32,4 +32,4 @@ def turbine_history(turbine_id):
         df = df.resample('15T').mean()
 
     return df
-print(turbine_history('A5019'))
+#print(turbine_history('A5019'))
